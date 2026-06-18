@@ -88,7 +88,7 @@ has_content_size() {
     local info
     info=$(zstd -l "$1" 2>/dev/null) || return 1
     # The data row's 4th field is the uncompressed size when present.
-    echo "$info" | awk 'NR==2 { exit ($4 ~ /^[0-9]/) ? 0 : 1 }'
+    echo "$info" | awk 'NR==2 { exit ($5 ~ /^[0-9]/) ? 0 : 1 }'
 }
 export -f has_content_size
 
