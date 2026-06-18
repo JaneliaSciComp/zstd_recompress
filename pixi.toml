@@ -6,6 +6,11 @@ platforms = ["linux-64"]
 version = "0.1.0"
 
 [tasks]
+test-bash = "bash test/test_recompress.sh"
+test = { cmd = "pixi run --environment zarr-test python test/test_zarr_tensorstore.py", depends-on = ["test-bash"] }
+
+[feature.zarr-test.tasks]
+test-zarr = "python test/test_zarr_tensorstore.py"
 
 [dependencies]
 zstd = ">=1.5.7,<2"
@@ -14,9 +19,15 @@ parallel = ">=20260422,<20260423"
 
 [environments]
 hermetic = ["default", "hermetic"]
+zarr-test = ["zarr-test"]
 
 [feature.hermetic.dependencies]
 util-linux = "*"
 findutils = "*"
 gawk = "*"
 coreutils = "*"
+
+[feature.zarr-test.dependencies]
+tensorstore = "*"
+zarr = ">=2,<3"
+python = "*"
