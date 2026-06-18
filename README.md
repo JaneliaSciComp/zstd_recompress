@@ -38,6 +38,65 @@ the frame header. It stores the lower 32 bits of the XXH64 hash of the
 uncompressed content and is validated automatically by `zstd -t` and during
 decompression.
 
+## Known cause: TensorStore + numcodecs
+
+A common source of this problem in the Zarr ecosystem is the combination of
+[TensorStore](https://google.github.io/tensorstore/) writing Zarr v2 arrays
+with zstd compression and an older version of
+[numcodecs](https://numcodecs.readthedocs.io/) reading them back.
+
+### Root cause
+
+TensorStore's zstd encoder uses the streaming API and does not provide the
+uncompressed size to the compressor before encoding begins (known as the
+"pledged source size"). As a result, every chunk it writes is a valid zstd
+frame, but without the `Frame_Content_Size` field. This is tracked in
+[google/tensorstore#182](https://github.com/google/tensorstore/issues/182)
+and remains unfixed in TensorStore itself.
+
+[JaneliaSciComp/tensorswitch](https://github.com/JaneliaSciComp/tensorswitch),
+a high-performance microscopy data conversion tool used at Janelia that uses
+TensorStore as its unified intermediate format, writes Zarr v2 arrays with zstd
+compression by default and is therefore a common source of affected files.
+
+### Impact on numcodecs readers
+
+Versions of numcodecs prior to **0.16.2** call `ZSTD_getFrameContentSize()` to
+determine the output buffer size before decompressing. When that function
+returns `ZSTD_CONTENTSIZE_UNKNOWN` (i.e. the field is absent), numcodecs raises:
+
+```
+Zstd decompression error: invalid input data
+```
+
+This means any Zarr array written by TensorStore (or tensorswitch) with zstd
+compression cannot be read by numcodecs < 0.16.2.
+
+### Fix: upgrade numcodecs and zarr-python
+
+[zarr-developers/numcodecs#707](https://github.com/zarr-developers/numcodecs/pull/707)
+added a streaming decompression fallback that handles the
+`ZSTD_CONTENTSIZE_UNKNOWN` case correctly. This fix was released in
+**numcodecs 0.16.2** (August 13, 2024).
+
+Upgrading numcodecs alone is not sufficient if you are on zarr-python 2.x:
+that release line pins `numcodecs<0.16` and will not install numcodecs 0.16.2.
+You must upgrade to **zarr-python >= 3.0.0**, which requires only
+`numcodecs>=0.14` and therefore accepts 0.16.2:
+
+```bash
+pip install "numcodecs>=0.16.2" "zarr>=3.0.0"
+```
+
+### When these scripts are still needed
+
+Upgrading numcodecs resolves read errors, but the underlying chunks on disk
+still lack the `Frame_Content_Size` field. Tools and libraries that rely on
+that field for buffer pre-allocation or size reporting (e.g. `zstd -l`,
+certain C/C++ consumers) will still be affected. Use `zstd_recompress.sh` to
+fix the chunks at rest so that the files are fully spec-compliant and readable
+by any conformant zstd decoder.
+
 ## Environment
 
 A [pixi](https://pixi.sh) environment is provided with pinned versions of all
