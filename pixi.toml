@@ -10,3 +10,13 @@ version = "0.1.0"
 [dependencies]
 zstd = ">=1.5.7,<2"
 xxhash = ">=0.8.3,<0.9"
+parallel = ">=20260422,<20260423"
+
+[environments]
+hermetic = ["default", "hermetic"]
+
+[feature.hermetic.dependencies]
+util-linux = "*"
+findutils = "*"
+gawk = "*"
+coreutils = "*"
