@@ -97,6 +97,93 @@ certain C/C++ consumers) will still be affected. Use `zstd_recompress.sh` to
 fix the chunks at rest so that the files are fully spec-compliant and readable
 by any conformant zstd decoder.
 
+## Installation
+
+### 1. Clone the repository
+
+```bash
+git clone git@github.com:JaneliaSciComp/zstd_recompress.git
+cd zstd_recompress
+```
+
+### 2. Dependencies
+
+The scripts require `zstd`, `xxh64sum` (from the `xxhash` package), and
+`parallel` (GNU parallel). These can come from your system package manager,
+a conda environment, or the pixi environment bundled with this repository.
+
+**Option A — use system packages** (no further setup needed if already installed):
+
+```bash
+# Debian / Ubuntu
+sudo apt install zstd xxhash parallel
+
+# RHEL / Rocky / Alma
+sudo dnf install zstd xxhash parallel
+
+# macOS (Homebrew)
+brew install zstd xxhash parallel
+```
+
+The scripts detect `pixi.toml` at startup and activate the bundled environment
+automatically when found. If pixi is not available or activation fails, they
+fall back to whatever is on the system `PATH`.
+
+**Option B — install pixi and use the bundled environment**:
+
+[pixi](https://pixi.sh) is a fast, cross-platform package manager. Install it
+with the one-liner from the pixi website, or via conda:
+
+```bash
+curl -fsSL https://pixi.sh/install.sh | bash
+```
+
+Then install the default environment (includes `zstd`, `xxhash`, `parallel`):
+
+```bash
+pixi install
+```
+
+A second, fully hermetic environment is also provided that bundles all POSIX
+utilities (`find`, `awk`, `flock`, `sort`, etc.) so the scripts work without
+any system tools at all:
+
+```bash
+pixi install --environment hermetic
+```
+
+Activate the hermetic environment for the current shell session:
+
+```bash
+eval "$(pixi shell-hook --environment hermetic)"
+```
+
+## Testing
+
+A test suite is included and can be run with:
+
+```bash
+pixi run test
+```
+
+This executes two test scripts in sequence:
+
+- `test/test_recompress.sh` — bash tests covering dry-run, mirror mode,
+  manifest generation, verification, and in-place idempotency
+- `test/test_zarr_tensorstore.py` — integration test (requires the
+  `zarr-test` pixi environment) that uses TensorStore to write a Zarr v2
+  array with zstd, demonstrates the numcodecs read failure, recompresses
+  the array, and confirms zarr-python can read it afterwards
+
+Tests also run automatically on every push and pull request via GitHub Actions.
+
+## Contributing
+
+Bug reports, questions, and feature requests are welcome via
+[GitHub Issues](https://github.com/JaneliaSciComp/zstd_recompress/issues).
+Pull requests are welcome — please open an issue first for any significant
+change so the approach can be discussed before implementation.
+
 ## Environment
 
 A [pixi](https://pixi.sh) environment is provided with pinned versions of all
