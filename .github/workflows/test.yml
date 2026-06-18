@@ -1,0 +1,36 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-bash:
+    name: Bash tests (zstd_recompress / zstd_verify)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: prefix-dev/setup-pixi@v0.9.6
+        with:
+          environments: default
+          cache: true
+
+      - name: Run bash test suite
+        run: pixi run test-bash
+
+  test-zarr:
+    name: Integration test (TensorStore + zarr-python v2)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: prefix-dev/setup-pixi@v0.9.6
+        with:
+          environments: zarr-test
+          cache: true
+
+      - name: Run zarr/TensorStore integration test
+        run: pixi run test-zarr
