@@ -13,7 +13,9 @@ set -euo pipefail
 # xxh64sum are available regardless of the caller's PATH.
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 if [[ -f "$SCRIPT_DIR/pixi.toml" ]]; then
-    eval "$(pixi shell-hook --manifest-path "$SCRIPT_DIR/pixi.toml")"
+    if ! eval "$(pixi shell-hook --manifest-path "$SCRIPT_DIR/pixi.toml" 2>/dev/null)" 2>/dev/null; then
+        echo "WARNING: failed to activate pixi environment; falling back to system PATH" >&2
+    fi
 fi
 
 usage() {
